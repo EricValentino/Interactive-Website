@@ -21,7 +21,7 @@ As a freshman Computer Science major, I built this project to challenge myself t
 - Basic DOM manipulation for scene transitions and UI effects
 
 ## My Process
-I started with simple prototypes, experimenting with how to handle memory-matching logic through arrays and event listeners. Once that foundation worked, I layered more advanced ideas — enemy logic, reactive animations, and sequential storytelling all while keeping the code organized and readable.  
+I started with simple prototypes, experimenting with how to handle memory-matching logic through arrays and event listeners. Once that foundation worked, I layered more advanced ideas enemy logic, reactive animations, and sequential storytelling all while keeping the code organized and readable.  
 This project taught me about problem solving, debugging, and the importance of structuring logic to scale creative ideas effectively.
 
 ## Live Demo
