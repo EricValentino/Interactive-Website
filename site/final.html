@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finale — A Letter Among the Stars</title>
+<meta name="theme-color" content="#0b1416"/>
+
+<style>
+  :root{
+    --ink:#eaf7f4;
+    --muted:#a7c9c2;
+    --glow:#7fffe0;
+    --rose:#ffb3c6;
+    --gold:#ffd86a;
+    --paper:#f6f1e3;
+    --paper-edge:#e1d8c2;
+    --bg1:#071214;
+    --bg2:#0c1b1f;
+    --bg3:#04090a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--ink);
+    font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial;
+    background:radial-gradient(1400px 900px at 50% -20%, var(--bg2) 0%, var(--bg1) 52%, var(--bg3) 100%);
+    overflow:hidden;
+  }
+
+  /* ===== LAYERS ===== */
+  #layer-stars,#layer-nebula,#layer-fx{
+    position:fixed; inset:0; display:block;
+  }
+  #layer-stars{z-index:0}
+  #layer-nebula{z-index:1}
+  #layer-fx{z-index:2}
+
+  /* ===== UI: Top bar ===== */
+  .ui{
+    position:fixed; inset:0 0 auto 0; height:70px; z-index:4;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; pointer-events:none;
+  }
+  .chip{
+    pointer-events:auto;
+    padding:8px 12px; border-radius:999px; border:1px solid #203238;
+    background:#0a1113cc; color:#cfeeed;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    display:flex; align-items:center; gap:8px; font-size:14px;
+  }
+  .chip.good{ border-color:#2c6e49; color:#9cffb0; background:#0e1a15d0 }
+
+  .title{
+    text-align:center; pointer-events:none;
+    text-shadow:0 2px 0 #000, 0 0 22px rgba(144,255,233,.35);
+  }
+  .title h1{ margin:.2rem 0 .2rem; font-weight:900; letter-spacing:.4px }
+  .title p{ margin:0; color:var(--muted); font-size:13px; letter-spacing:.3px }
+
+  .btn{
+    pointer-events:auto;
+    appearance:none; border:none; border-radius:10px; padding:9px 14px; font-weight:800; cursor:pointer;
+    color:#0c1212; background:linear-gradient(180deg,#98ffe9,#56f1d5);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .btn.ghost{
+    background:transparent; color:#cfeeed; border:1px solid #1d3a36; box-shadow:none; backdrop-filter:blur(2px);
+  }
+  .btn.primary{ background:linear-gradient(180deg,#b37dff,#7b4dff); color:#fff }
+  .btn.disabled{ filter:grayscale(1) brightness(.7); pointer-events:none }
+
+  /* ===== Centerpiece: Envelope ===== */
+  .stage{
+    position:fixed; inset:0; display:grid; place-items:center; z-index:3;
+    pointer-events:none;
+  }
+  .envelope-wrap{
+    pointer-events:auto; cursor:pointer; user-select:none;
+    transform:translateY(14px);
+  }
+  .envelope{
+    width:min(420px,78vw); aspect-ratio:4/3; position:relative; perspective:1400px;
+    filter:drop-shadow(0 30px 90px rgba(0,0,0,.6)) drop-shadow(0 0 24px rgba(127,255,224,.18));
+  }
+  .env-back{
+    position:absolute; inset:0; border-radius:12px; overflow:hidden;
+    background:linear-gradient(180deg,#f5efdf,#efe6cf);
+    box-shadow:inset 0 0 0 1px #d8ceb5, inset 0 0 40px rgba(0,0,0,.06);
+  }
+  .env-front{
+    position:absolute; inset:0; border-radius:12px; overflow:hidden;
+    background:linear-gradient(180deg,#efe6cf,#e7dcc0);
+    box-shadow:inset 0 0 0 1px #d4c8ab;
+  }
+  .env-flap{
+    position:absolute; left:0; right:0; top:0; height:56%;
+    background:linear-gradient(180deg,#efe6cf,#e5d9bd);
+    clip-path:polygon(0 0, 100% 0, 50% 100%);
+    transform-origin:50% 0; transform:rotateX(0deg);
+    box-shadow:inset 0 0 0 1px #d4c8ab;
+  }
+  .seal{
+    position:absolute; left:50%; top:42%; transform:translate(-50%,-50%);
+    width:44px; height:44px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #ffd3e0 0%, #ff9eb8 45%, #ff6f91 100%);
+    box-shadow:0 0 0 2px rgba(0,0,0,.06), 0 8px 20px rgba(255,110,150,.35);
+  }
+  .env-glow{
+    position:absolute; inset:-8%; border-radius:16px; pointer-events:none;
+    background:radial-gradient(500px 300px at 50% 40%, rgba(127,255,224,.28), transparent 60%);
+    mix-blend-mode:screen; opacity:.6;
+    animation:envPulse 2.8s ease-in-out infinite;
+  }
+  @keyframes envPulse{0%,100%{opacity:.5}50%{opacity:.85}}
+
+  .tap{
+    margin-top:12px; text-align:center; color:#cfeeed; font-size:13px; letter-spacing:.3px;
+    text-shadow:0 2px 0 #000, 0 0 12px rgba(127,255,224,.2);
+  }
+
+  /* ===== Letter (handwritten) ===== */
+  .letter{
+    position:fixed; inset:0; display:grid; place-items:center; z-index:5;
+    opacity:0; pointer-events:none; transform:translateY(8px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .letter.show{ opacity:1; transform:translateY(0); pointer-events:auto }
+
+  .paper{
+    width:min(720px,92vw); min-height:min(560px,84vh);
+    background:
+      radial-gradient(900px 600px at 50% 0%, #fffaf1 0%, #f7f0e1 60%, #efe7d4 85%, #e9dec6 100%);
+    border:1px solid #d9cfb4; border-radius:14px;
+    box-shadow:
+      0 50px 120px rgba(0,0,0,.55),
+      inset 0 0 60px rgba(0,0,0,.06),
+      0 0 0 2px rgba(255,255,255,.35) inset;
+    position:relative; overflow:hidden; padding:28px 28px 34px;
+  }
+  .paper::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background-image:
+      radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
+      radial-gradient(rgba(0,0,0,.04) 1px, transparent 1px);
+    background-position: 0 0, 8px 8px;
+    background-size: 16px 16px;
+    opacity:.22; mix-blend-mode:multiply;
+  }
+  .flourish{
+    position:absolute; left:-8%; right:-8%; top:-40px; height:140px; opacity:.25; filter:blur(0.2px);
+    background:
+      radial-gradient(500px 100px at 12% 50%, rgba(255,120,160,.35), transparent 70%),
+      radial-gradient(400px 100px at 88% 50%, rgba(127,255,224,.35), transparent 70%);
+    transform:rotate(-2deg);
+  }
+  .hand{
+    position:relative; z-index:2;
+    font-family: "Caveat", "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
+    color:#2b2620;
+    text-shadow:0 1px 0 rgba(255,255,255,.55);
+    line-height:1.4;
+    font-size: clamp(18px, 2.6vw, 26px);
+  }
+  .hand h2{
+    font-size: clamp(20px, 3vw, 30px);
+    margin:6px 0 12px; letter-spacing:.6px;
+  }
+  .hand p{ margin:.2rem 0 .6rem }
+  .hand .sig{ margin-top:10px; font-weight:700 }
+
+  /* handwriting reveal (mask sweep) */
+  .reveal{
+    --p:0%;
+    background:
+      linear-gradient(90deg,#2b2620 0 0) left top / var(--p) 100% no-repeat,
+      linear-gradient(90deg,transparent 0 0) left top / 100% 100% no-repeat;
+    -webkit-background-clip:text, padding-box;
+            background-clip:text, padding-box;
+    color:transparent;
+  }
+
+  .actions{
+    margin-top:16px; display:flex; gap:10px; justify-content:flex-end;
+  }
+  .actions .btn{ transform:translateY(6px); opacity:0; transition:opacity .6s ease, transform .6s ease }
+  .actions .btn.show{ transform:translateY(0); opacity:1 }
+
+  /* ===== “Tap to start / allow audio” curtain ===== */
+  .curtain{
+    position:fixed; inset:0; display:grid; place-items:center; z-index:6;
+    background:radial-gradient(1200px 800px at 50% 0%, rgba(10,18,20,.88) 0%, rgba(6,11,12,.94) 55%, rgba(3,7,8,.98) 100%);
+    transition:opacity .6s ease; opacity:1;
+  }
+  .curtain.hide{ opacity:0; pointer-events:none }
+  .card{
+    text-align:center; padding:18px 20px; border-radius:12px;
+    background:linear-gradient(180deg,#0f1618,#0a1012); border:1px solid #1f3438;
+    box-shadow:0 30px 100px rgba(0,0,0,.6);
+    width:min(520px,92vw);
+  }
+  .card h3{ margin:.2rem 0 .6rem }
+  .card p{ margin:.2rem 0 1rem; color:#b6dad5; font-size:14px }
+</style>
+</head>
+<body>
+
+<!-- ====== Audio (calm track) ====== -->
+<audio id="music" preload="auto" loop
+  src="https://github.com/EricValentino/eldenringpt2/raw/refs/heads/main/26.%20Miquella's%20Haligtree.mp3"></audio>
+
+<!-- ====== Top UI ====== -->
+<div class="ui">
+  <div class="chip good">✓ Finale Unlocked</div>
+  <div class="title">
+    <h1>Among the Stars</h1>
+    <p>Click the glowing envelope to open your letter.</p>
+  </div>
+  <div class="chip" style="gap:10px">
+    <button id="musicBtn" class="btn ghost">♫ Music</button>
+  </div>
+</div>
+
+<!-- ====== Canvases ====== -->
+<canvas id="layer-stars"></canvas>
+<canvas id="layer-nebula"></canvas>
+<canvas id="layer-fx"></canvas>
+
+<!-- ====== Center Envelope ====== -->
+<div class="stage">
+  <div class="envelope-wrap" id="envelopeWrap" aria-label="Open letter" role="button" tabindex="0">
+    <div class="envelope" id="envelope">
+      <div class="env-back"></div>
+      <div class="env-front"></div>
+      <div class="env-flap" id="flap"></div>
+      <div class="seal"></div>
+      <div class="env-glow"></div>
+    </div>
+    <div class="tap">Tap / Click to open</div>
+  </div>
+</div>
+
+<!-- ====== Letter ====== -->
+<div id="letter" class="letter" aria-live="polite">
+  <div class="paper">
+    <div class="flourish"></div>
+    <div class="hand">
+      <h2 class="reveal" data-delay="0">Mission complete, traveler.</h2>
+      <p class="reveal" data-delay="800">
+        You crossed the access terminal, the meadow, the desk and the duel,
+        and every star in this sky lit up because you found it.
+      </p>
+      <p class="reveal" data-delay="2000">
+       Every treasure you collected is still out there, glowing,
+        waiting for the next time you come back to look.
+      </p>
+      <p class="reveal" data-delay="3600">
+        Thanks for playing all the way to the end.
+        The universe is a little brighter with you in it.
+      </p>
+      <p class="reveal" data-delay="5200">
+        Until the next adventure.
+      </p>
+      <p class="sig reveal" data-delay="6400">— The Treasure Hunt</p>
+
+      <div class="actions">
+        <!-- IMPORTANT: back to site root, works even if this file is inside a folder -->
+        <a id="backBtn" class="btn primary" href="/" style="pointer-events:none" aria-disabled="true">Back to Index</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Tap-to-start (autoplay permission) ====== -->
+<div id="curtain" class="curtain">
+  <div class="card">
+    <h3>Ready?</h3>
+    <p>We've finally reached the end of what could have been more!</p>
+    <button id="beginBtn" class="btn">Begin</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CANVAS SETUP
+============================================================ */
+const C1 = document.getElementById('layer-stars');
+const C2 = document.getElementById('layer-nebula');
+const C3 = document.getElementById('layer-fx');
+const X1 = C1.getContext('2d', { alpha:false });
+const X2 = C2.getContext('2d', { alpha:true });
+const X3 = C3.getContext('2d', { alpha:true });
+let DPR = Math.min(2, devicePixelRatio || 1), W=0, H=0;
+
+function fit(){
+  W = C1.width = C2.width = C3.width = Math.floor(innerWidth*DPR);
+  H = C1.height = C2.height = C3.height = Math.floor(innerHeight*DPR);
+  C1.style.width = C2.style.width = C3.style.width = innerWidth+'px';
+  C1.style.height= C2.style.height= C3.style.height= innerHeight+'px';
+}
+addEventListener('resize', fit); fit();
+
+/* ============================================================
+   STARFIELD + NEBULA
+============================================================ */
+const starsFar = [], starsNear = [];
+function buildStars(){
+  starsFar.length=0; starsNear.length=0;
+  const nFar  = Math.round((W*H)/22000);
+  const nNear = Math.round((W*H)/36000);
+  for(let i=0;i<nFar;i++){
+    starsFar.push({x:Math.random()*W, y:Math.random()*H, z:Math.random()*0.9+0.3, a:Math.random()*0.5+0.25});
+  }
+  for(let i=0;i<nNear;i++){
+    starsNear.push({x:Math.random()*W, y:Math.random()*H, z:Math.random()*1.8+1.0, a:Math.random()*0.5+0.25});
+  }
+}
+buildStars();
+
+function drawStars(){
+  X1.fillStyle = '#051013';
+  X1.fillRect(0,0,W,H);
+
+  for(const s of starsFar){
+    s.x -= s.z*0.12; if(s.x<0) s.x = W, s.y=Math.random()*H;
+    X1.globalAlpha = s.a;
+    X1.fillStyle = '#93fff1';
+    X1.beginPath(); X1.arc(s.x, s.y, s.z, 0, Math.PI*2); X1.fill();
+  }
+  X1.globalAlpha = 1;
+
+  for(const s of starsNear){
+    s.x -= s.z*0.28; if(s.x<0) s.x = W, s.y=Math.random()*H;
+    X1.globalAlpha = s.a;
+    X1.fillStyle = '#bffdf3';
+    X1.beginPath(); X1.arc(s.x, s.y, 0.9+s.z*0.18, 0, Math.PI*2); X1.fill();
+  }
+  X1.globalAlpha = 1;
+}
+
+let tNeb = 0;
+function drawNebula(dt){
+  tNeb += dt;
+  X2.clearRect(0,0,W,H);
+
+  function blob(cx,cy, r, col, alpha){
+    const g = X2.createRadialGradient(cx,cy,0, cx,cy,r);
+    g.addColorStop(0, col.replace('ALPHA', alpha.toFixed(3)));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    X2.fillStyle = g;
+    X2.beginPath(); X2.arc(cx,cy,r,0,Math.PI*2); X2.fill();
+  }
+
+  const cx = W*0.55, cy = H*0.35;
+  blob(cx + Math.sin(tNeb*0.13)*120*DPR, cy + Math.cos(tNeb*0.11)*80*DPR,
+       520*DPR, 'rgba(148, 218, 209, ALPHA)', 0.22);
+  blob(cx - Math.cos(tNeb*0.09)*140*DPR, cy + Math.sin(tNeb*0.12)*110*DPR,
+       640*DPR, 'rgba(210, 160, 230, ALPHA)', 0.18);
+  blob(cx + Math.cos(tNeb*0.07+2)*220*DPR, cy + Math.sin(tNeb*0.10+1)*160*DPR,
+       520*DPR, 'rgba(255, 180, 210, ALPHA)', 0.16);
+  blob(cx - Math.sin(tNeb*0.05+3)*260*DPR, cy - Math.cos(tNeb*0.08+2)*200*DPR,
+       760*DPR, 'rgba(120, 170, 255, ALPHA)', 0.12);
+}
+
+/* ============================================================
+   PARTICLE GLITTERS
+============================================================ */
+const glitters = [];
+function spawnGlitter(x,y){
+  for(let i=0;i<18;i++){
+    glitters.push({
+      x, y,
+      vx:(Math.random()*2-1)*0.6*DPR,
+      vy:(Math.random()*2-1)*0.6*DPR,
+      r:Math.random()*1.8+0.6,
+      life:1
+    });
+  }
+}
+function drawFX(dt){
+  X3.clearRect(0,0,W,H);
+  for(const p of glitters){
+    p.x += p.vx; p.y += p.vy; p.life -= dt*0.8;
+    X3.globalAlpha = Math.max(0,p.life)*0.9;
+    X3.fillStyle = '#d7fff7';
+    X3.beginPath(); X3.arc(p.x,p.y,p.r,0,Math.PI*2); X3.fill();
+  }
+  X3.globalAlpha = 1;
+  for(let i=glitters.length-1;i>=0;i--) if(glitters[i].life<=0) glitters.splice(i,1);
+}
+
+/* ============================================================
+   AUDIO (music + soft fallback pad)
+============================================================ */
+const music = document.getElementById('music');
+const musicBtn = document.getElementById('musicBtn');
+let musicOn = (localStorage.getItem('finale_music') ?? '1') === '1';
+updateMusicUI();
+
+function updateMusicUI(){
+  musicBtn.classList.toggle('ghost', !musicOn);
+  musicBtn.textContent = musicOn ? '♫ Music' : '🔇 Music';
+}
+function fadeAudio(el, from, to, ms, done){
+  const t0 = performance.now();
+  function tick(t){
+    const k = Math.min(1,(t-t0)/ms);
+    el.volume = from + (to-from)*k;
+    if(k<1) requestAnimationFrame(tick); else done && done();
+  }
+  requestAnimationFrame(tick);
+}
+musicBtn.addEventListener('click', ()=>{
+  musicOn = !musicOn;
+  localStorage.setItem('finale_music', musicOn ? '1':'0');
+  updateMusicUI();
+  if(musicOn){
+    music.volume=0; music.play().catch(()=>{});
+    fadeAudio(music, 0, .75, 800);
+  }else{
+    fadeAudio(music, music.volume, 0, 600, ()=> music.pause());
+  }
+});
+
+// Soft pad if autoplay is blocked
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function softPadStart(){
+  const t = AC.currentTime;
+  const o1 = AC.createOscillator(), o2 = AC.createOscillator();
+  const g  = AC.createGain();
+  o1.type='sine'; o2.type='triangle';
+  o1.frequency.value = 196;   // G3
+  o2.frequency.value = 246.94;// B3
+  o1.connect(g); o2.connect(g); g.connect(AC.destination);
+  g.gain.value=0.0001;
+  g.gain.exponentialRampToValueAtTime(0.05, t+0.2);
+  window._padNodes = {o1,o2,g};
+  o1.start(t); o2.start(t);
+}
+function softPadStop(){
+  if(!window._padNodes) return;
+  const {o1,o2,g} = window._padNodes;
+  const t = AC.currentTime;
+  try{
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.4);
+    o1.stop(t+0.45); o2.stop(t+0.45);
+  }catch{}
+  window._padNodes=null;
+}
+
+/* ============================================================
+   ENVELOPE → LETTER REVEAL
+============================================================ */
+const envelopeWrap = document.getElementById('envelopeWrap');
+const flap         = document.getElementById('flap');
+const letter       = document.getElementById('letter');
+const backBtn      = document.getElementById('backBtn');
+
+let opened = false;
+function openEnvelope(){
+  if(opened) return; opened = true;
+
+  flap.animate([
+    { transform:'rotateX(0deg)' },
+    { transform:'rotateX(-150deg)' }
+  ], { duration:800, easing:'cubic-bezier(.2,.7,.2,1)', fill:'forwards' });
+
+  const r = envelopeWrap.getBoundingClientRect();
+  spawnGlitter((r.left+r.right)/2*DPR, (r.top+r.bottom)/2*DPR);
+
+  setTimeout(()=>{
+    letter.classList.add('show');
+    writeLetter();
+  }, 600);
+}
+envelopeWrap.addEventListener('click', openEnvelope);
+envelopeWrap.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ') openEnvelope(); });
+
+/* handwriting sweep */
+function writeLetter(){
+  const lines = [...letter.querySelectorAll('.reveal')];
+  for(const el of lines){
+    const delay = Number(el.dataset.delay||0);
+    setTimeout(()=>{
+      el.style.setProperty('--p','0%');
+      const t0 = performance.now();
+      const dur = 1000 + el.textContent.trim().length*8;
+      function step(t){
+        const k = Math.min(1,(t-t0)/dur);
+        el.style.setProperty('--p', (k*100).toFixed(2)+'%');
+        if(k<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }, delay);
+  }
+  // enable Back after last line
+  const lastDelay = Math.max(...lines.map(n=>Number(n.dataset.delay||0)));
+  setTimeout(()=>{
+    backBtn.style.pointerEvents='auto';
+    backBtn.setAttribute('aria-disabled','false');
+    backBtn.classList.add('show');
+  }, lastDelay + 2200);
+}
+
+/* ============================================================
+   MASTER LOOP
+============================================================ */
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(0.033,(now-last)/1000); last = now;
+  drawStars();
+  drawNebula(dt);
+  drawFX(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ============================================================
+   CURTAIN (autoplay permission)
+============================================================ */
+const curtain = document.getElementById('curtain');
+const beginBtn= document.getElementById('beginBtn');
+
+beginBtn.addEventListener('click', async ()=>{
+  try{ await AC.resume(); }catch{}
+  curtain.classList.add('hide');
+
+  if((localStorage.getItem('finale_music') ?? '1')==='1'){
+    try{
+      music.volume=0; await music.play();
+      fadeAudio(music, 0, .75, 800);
+      softPadStop();
+    }catch{
+      softPadStart();
+    }
+  }else{
+    softPadStart();
+  }
+});
+
+/* ============================================================
+   EXTRA: allow Esc to go home AFTER reveal
+============================================================ */
+addEventListener('keydown', (e)=>{
+  if(e.key==='Escape' && backBtn.getAttribute('aria-disabled')==='false'){
+    // make sure it works even inside folders
+    location.href = '/';
+  }
+});
+</script>
+</body>
+</html>

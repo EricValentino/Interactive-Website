@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>The Desk — Treasure IV</title>
+<style>
+  :root{
+    --bg:#050505; --ink:#dfe7eb; --soft:#a9b6bd; --accent:#7fffe0;
+    --crtGlow:#93fff1; --task:#0f1417; --taskEdge:#1b242a; --sel:#19f0c9; --gold:#ffd86a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+
+  .stage{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden}
+  svg{width:min(1200px,92vw);height:auto;max-height:86vh}
+
+  .ln{stroke:var(--ink);stroke-width:2;fill:none}
+  .thin{stroke-width:1.2}
+  .dim{stroke:var(--soft)}
+  .bulb{transform-origin:50% -240px; animation:swing 3.6s ease-in-out infinite}
+  @keyframes swing{
+    0%,100%{ transform:rotate(2deg) }
+    50%{ transform:rotate(-2deg) }
+  }
+
+  .hot{cursor:pointer; filter:drop-shadow(0 0 0 rgba(0,0,0,0))}
+  .hot:hover{filter:drop-shadow(0 0 10px rgba(127,255,224,.35))}
+  .pulse{animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.65} 50%{opacity:1}}
+
+  .cam{
+    position:fixed; inset:0; display:grid; place-items:center; z-index:20;
+    transform-origin:var(--ox) var(--oy); transform:translate(var(--tx,0),var(--ty,0)) scale(var(--sc,.2));
+    opacity:0; pointer-events:none;
+    transition:transform .7s cubic-bezier(.12,.62,.2,1), opacity .5s ease;
+  }
+  .cam.show{opacity:1; pointer-events:auto; transform:translate(0,0) scale(1)}
+
+  .monitor{
+    width:min(980px,92vw); aspect-ratio:16/10; border-radius:16px; padding:20px;
+    background:linear-gradient(180deg,#171b1f,#0e1215 55%,#0a0d10);
+    box-shadow:0 30px 90px rgba(0,0,0,.65), inset 0 0 0 2px #253038, inset 0 0 60px rgba(120,255,230,.08);
+    position:relative;
+  }
+  .screen{
+    position:absolute; inset:54px 54px 90px 54px; border-radius:10px; overflow:hidden;
+    background:#0b0f11; box-shadow:0 0 0 2px #1e262b inset, 0 0 30px rgba(127,255,224,.08) inset;
+  }
+  .scanlines::before{
+    content:""; position:absolute; inset:0;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.04) 0 2px, transparent 2px 4px);
+    mix-blend-mode:overlay; opacity:.25; pointer-events:none;
+  }
+  .bleed::after{
+    content:""; position:absolute; inset:-2px; pointer-events:none;
+    background:
+      radial-gradient(70% 60% at 50% 40%, rgba(147,255,241,.12), transparent 60%),
+      radial-gradient(60% 50% at 50% 60%, rgba(147,255,241,.08), transparent 60%);
+    filter:blur(10px);
+  }
+
+  .wall{position:absolute; inset:0; background:
+    radial-gradient(1200px 800px at 50% 25%, #13363a 0%, #0a1a1c 55%, #081113 68%, #060b0c 100%);
+  }
+
+  .icons{position:absolute; inset:16px auto auto 18px; width:210px; display:grid; gap:14px}
+  .icon{
+    display:grid; grid-template-columns:40px 1fr; gap:8px; align-items:center;
+    color:#d9f4ff; text-shadow:0 1px 0 #000; font-size:14px;
+    user-select:none; cursor:pointer; padding:6px 8px; border-radius:8px; border:1px solid transparent;
+    transition:filter .15s ease, transform .08s ease, border-color .15s ease, background .15s ease;
+  }
+  .icon:hover{ filter:brightness(1.08) }
+  .icon:active{ transform:translateY(1px) }
+  .icon.sel{ border-color:#1cebd0; background:rgba(28,235,208,.08) }
+  .glyph{
+    width:40px; height:40px; border-radius:8px; display:grid; place-items:center;
+    background:linear-gradient(180deg,#1e2a2c,#11191b);
+    box-shadow:inset 0 0 0 1px #35494e, 0 12px 18px rgba(0,0,0,.35);
+    position:relative; overflow:hidden;
+  }
+  .glyph .tri{ width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid #ff3349; transform:translateY(-2px)}
+  .glyph .bar{ position:absolute; bottom:0; left:0; right:0; height:5px; background:#ff3349 }
+
+  .icon.val:hover .glyph{ box-shadow:inset 0 0 0 1px #ff5567, 0 0 20px #ff3349aa }
+  .icon.val.sel{ border-color:#ff5567; background:rgba(255,51,73,.08) }
+
+  .task{
+    position:absolute; left:54px; right:54px; bottom:46px; height:42px; border-radius:8px;
+    background:linear-gradient(180deg, var(--task), #0b0f12);
+    box-shadow:inset 0 0 0 1px var(--taskEdge), 0 -1px 0 #0b0f12, 0 10px 30px rgba(0,0,0,.5);
+    display:flex; align-items:center; gap:10px; padding:0 12px;
+  }
+  .start{
+    padding:6px 10px; border-radius:6px; color:#bce7e0; background:#0b1415;
+    box-shadow:inset 0 0 0 1px #18302d; user-select:none; cursor:pointer; transition:filter .15s ease
+  }
+  .start:hover{ filter:brightness(1.2) }
+
+  .launcher{
+    position:absolute; top:18%; left:50%; transform:translateX(-50%); width:min(560px,80%); padding:16px 16px 18px;
+    border-radius:12px; background:linear-gradient(180deg,#0e1417,#0b0f11);
+    box-shadow:0 20px 70px rgba(0,0,0,.55), inset 0 0 0 1px #21333a;
+    display:none;
+  }
+  .launcher.show{ display:block }
+  .bar{height:12px; border-radius:999px; background:#0a1214; box-shadow:inset 0 0 0 1px #203238; overflow:hidden}
+  .fill{height:100%; width:0%; background:linear-gradient(90deg,#fd5768,#ffc06e); box-shadow:0 0 16px rgba(255,160,80,.7)}
+  .status{margin-top:10px; color:#cbe9e2; font-size:13px; letter-spacing:.4px}
+
+  .codeCard{
+    position:absolute; top:56%; left:50%; transform:translate(-50%,-50%) scale(.98);
+    display:none; width:min(680px,88%); padding:18px 20px 22px; text-align:center;
+    border-radius:14px; background:linear-gradient(180deg,rgba(25,29,30,.88),rgba(10,12,12,.9));
+    box-shadow:0 24px 80px rgba(0,0,0,.55), inset 0 0 40px rgba(127,255,224,.05);
+    border:1px solid #2b3a3e;
+  }
+  .codeCard.show{ display:block; animation:pop .4s ease both }
+  @keyframes pop{ from{opacity:0; transform:translate(-50%,-50%) scale(.96)} to{opacity:1; transform:translate(-50%,-50%) scale(1)} }
+  .tt{font-weight:800; letter-spacing:.6px; color:#d9fff3}
+  .code{
+    margin-top:10px; display:inline-block; padding:8px 14px; border-radius:10px;
+    border:1px solid rgba(255,216,106,.25); background:linear-gradient(180deg,rgba(60,44,16,.35),rgba(35,26,8,.35));
+    font-weight:900; letter-spacing:4px; font-size:clamp(22px,5.4vw,42px); color:var(--gold);
+    text-shadow:0 0 18px rgba(255,216,106,.35);
+    user-select:all;
+  }
+  .small{color:#a9cfd0; font-size:12px; margin-top:8px}
+
+  .back{
+    position:fixed; top:16px; left:16px; z-index:50; display:none;
+    padding:8px 12px; border-radius:10px; background:#0c1315; color:#bdebe4; border:1px solid #21363b;
+    cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.4)
+  }
+  .back.show{display:block}
+
+  .bubble{
+    position:absolute; transform:translate(-50%,-100%); background:#0b1214; color:#bfeeed;
+    border:1px solid #203238; padding:6px 10px; border-radius:8px; font-size:12px; white-space:nowrap;
+    pointer-events:none; opacity:.85
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- ======= SCENE: Desk line-art (SVG) ======= -->
+  <svg viewBox="0 0 1400 650" role="img" aria-label="Desk with tower, monitor, keyboard and hanging bulb">
+    <!-- Hanging bulb -->
+    <g class="bulb">
+      <line class="ln thin" x1="955" y1="-200" x2="955" y2="120"/>
+      <circle class="ln" cx="955" cy="150" r="22"/>
+      <rect class="ln" x="946" y="120" width="18" height="32" rx="6"/>
+      <circle cx="955" cy="150" r="8" fill="#0f181a"/>
+    </g>
+
+    <!-- ======= DESK ======= -->
+    <g id="desk">
+      <rect x="280" y="320" width="840" height="320" rx="6" 
+            fill="url(#wood)" stroke="#2a2a2a" stroke-width="3"/>
+      <rect x="280" y="320" width="840" height="20" fill="url(#bevel)"/>
+    </g>
+
+    <defs>
+      <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#4b2e16"/>
+        <stop offset="100%" stop-color="#2a1a0b"/>
+      </linearGradient>
+      <linearGradient id="bevel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7a4b25"/>
+        <stop offset="100%" stop-color="#3d2412"/>
+      </linearGradient>
+    </defs>
+
+    <!-- ======= PC Tower ======= -->
+    <g id="tower" transform="translate(420,160)">
+      <rect x="0" y="0" width="120" height="240" rx="8"
+            fill="url(#towerGrad)" stroke="#111" stroke-width="2"/>
+      <g stroke="#333" stroke-width="2">
+        <line x1="20" y1="30" x2="100" y2="30"/>
+        <line x1="20" y1="50" x2="100" y2="50"/>
+        <line x1="20" y1="70" x2="100" y2="70"/>
+      </g>
+      <circle cx="60" cy="200" r="10" fill="#19f0c9" stroke="#0a0" stroke-width="2"/>
+      <circle cx="60" cy="160" r="24" fill="none" stroke="#444" stroke-width="2"/>
+      <circle cx="60" cy="160" r="16" fill="none" stroke="#666" stroke-width="1"/>
+    </g>
+
+    <defs>
+      <linearGradient id="towerGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#1d2529"/>
+        <stop offset="100%" stop-color="#0a0d0e"/>
+      </linearGradient>
+    </defs>
+
+    <!-- ======= Monitor ======= -->
+    <g id="monitorGroup" class="hot">
+      <rect class="ln" x="670" y="110" width="230" height="170"/>
+      <rect class="ln thin" x="690" y="130" width="190" height="120"/>
+      <rect x="760" y="282" width="50" height="8" fill="none" stroke="#dfe7eb" stroke-width="2"/>
+      <rect x="760" y="300" width="50" height="8" fill="none" stroke="#dfe7eb" stroke-width="2"/>
+      <rect x="750" y="168" width="70" height="48" fill="none" stroke="#dfe7eb" stroke-width="3" class="pulse"/>
+      <text x="785" y="195" fill="#dfe7eb" text-anchor="middle" style="font-size:30px;font-weight:900">?</text>
+    </g>
+
+    <!-- ======= Keyboard ======= -->
+    <g id="keyboard" transform="translate(660,320)">
+      <rect x="0" y="0" width="260" height="90" rx="10"
+            fill="url(#keyFrame)" stroke="#111" stroke-width="2" filter="url(#shadow)"/>
+      <g fill="url(#keyGrad)" stroke="#222" stroke-width="1">
+        <g transform="translate(10,10)">
+          <g id="row">
+            <rect x="0" y="0" width="22" height="22" rx="3"/>
+            <rect x="26" y="0" width="22" height="22" rx="3"/>
+            <rect x="52" y="0" width="22" height="22" rx="3"/>
+            <rect x="78" y="0" width="22" height="22" rx="3"/>
+          </g>
+          <use href="#row" y="26"/>
+          <use href="#row" y="52"/>
+        </g>
+        <rect x="10" y="80" width="100" height="12" rx="4" fill="#444"/>
+      </g>
+    </g>
+
+    <defs>
+      <linearGradient id="keyFrame" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1e262a"/>
+        <stop offset="100%" stop-color="#0b0f11"/>
+      </linearGradient>
+      <linearGradient id="keyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3a3f43"/>
+        <stop offset="100%" stop-color="#1d2023"/>
+      </linearGradient>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.6"/>
+      </filter>
+    </defs>
+
+    <!-- ======= Mouse ======= -->
+    <g id="mouse" transform="translate(950,340)">
+      <ellipse cx="40" cy="25" rx="40" ry="25"
+               fill="url(#mouseGrad)" stroke="#111" stroke-width="2"/>
+      <line x1="40" y1="0" x2="40" y2="50" stroke="#333" stroke-width="2"/>
+      <rect x="36" y="10" width="8" height="12" rx="2" fill="#666"/>
+    </g>
+
+    <defs>
+      <linearGradient id="mouseGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#444"/>
+        <stop offset="100%" stop-color="#1a1a1a"/>
+      </linearGradient>
+    </defs>
+  </svg>
+</div>
+
+<button id="back" class="back" aria-label="Back to desk">Back</button>
+
+<div id="cam" class="cam" style="--ox:50%;--oy:50%;">
+  <div class="monitor">
+    <div class="screen scanlines bleed">
+      <div class="wall"></div>
+      <div class="icons" id="icons">
+        <div class="icon val" data-app="valorant">
+          <div class="glyph"><div class="tri"></div><div class="bar"></div></div>
+          <div>Valorant</div>
+        </div>
+        <div class="icon" data-app="notes">
+          <div class="glyph" style="background:linear-gradient(180deg,#1f2629,#141a1d)">
+            <svg viewBox="0 0 40 40" width="28" height="28">
+              <rect x="8" y="8" width="24" height="22" rx="3" stroke="#9bcad0" fill="none"/>
+              <path d="M12 14 h16 M12 20 h16 M12 26 h16" stroke="#9bcad0" stroke-width="2" />
+            </svg>
+          </div>
+          <div>Notes</div>
+        </div>
+        <div class="icon" data-app="recycle">
+          <div class="glyph">
+            <svg viewBox="0 0 40 40" width="26" height="26">
+              <path d="M12 12 h16 v16 h-16 Z" fill="none" stroke="#9bcad0"/>
+              <path d="M16 16 l8 8 M24 16 l-8 8" stroke="#9bcad0" stroke-width="2"/>
+            </svg>
+          </div>
+          <div>Recycle Bin</div>
+        </div>
+        <!-- ✅ HUB icon added -->
+        <div class="icon" data-app="hub">
+          <div class="glyph" style="background:linear-gradient(180deg,#223,#111)">
+            <svg viewBox="0 0 40 40" width="26" height="26">
+              <circle cx="20" cy="20" r="10" fill="none" stroke="#7fffe0" stroke-width="2"/>
+              <line x1="20" y1="10" x2="20" y2="30" stroke="#7fffe0" stroke-width="2"/>
+              <line x1="10" y1="20" x2="30" y2="20" stroke="#7fffe0" stroke-width="2"/>
+            </svg>
+          </div>
+          <div>HUB</div>
+        </div>
+      </div>
+      <div class="task"><div class="start" id="start">Start</div></div>
+      <div class="launcher" id="launcher" aria-live="polite">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:18px;height:18px;border-radius:4px;background:#ff3349;box-shadow:0 0 14px #ff3349aa"></div>
+          <div style="font-weight:800;letter-spacing:.6px">Riot Vanguard — Launching Valorant</div>
+        </div>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+        <div class="status" id="status">Initializing anti-cheat…</div>
+      </div>
+      <div class="codeCard" id="codeCard" role="dialog" aria-modal="true">
+        <div class="tt">Access Key — Valorant</div>
+        <div id="code" class="code">••••-••••-••••</div>
+        <div class="small">Copied locally. Press anywhere outside to close.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const VALORANT_CODE = "RA-WU8BMWF7BSR4ZGZB";
+
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function beep(f=880, dur=.08, g=.06){
+  const o=AC.createOscillator(), gn=AC.createGain();
+  o.type='triangle'; o.frequency.value=f; o.connect(gn); gn.connect(AC.destination);
+  const t=AC.currentTime; gn.gain.value=0.0001;
+  gn.gain.exponentialRampToValueAtTime(g, t+.01);
+  gn.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.start(); o.stop(t+dur+.02);
+}
+function zap(){ beep(220,.05,.05); beep(660,.12,.05); }
+
+const cam  = document.getElementById('cam');
+const back = document.getElementById('back');
+const monitorGroup = document.getElementById('monitorGroup');
+
+monitorGroup.addEventListener('click', () => {
+  const r = monitorGroup.getBoundingClientRect();
+  const ox = (r.left + r.width/2) / innerWidth * 100;
+  const oy = (r.top  + r.height/2) / innerHeight * 100;
+  cam.style.setProperty('--ox', ox+'%');
+  cam.style.setProperty('--oy', oy+'%');
+  cam.classList.add('show'); back.classList.add('show');
+  zap();
+  spawnBubble(r.left + r.width/2, r.top - 10, "Double-click app icons");
+});
+
+back.addEventListener('click', () => {
+  cam.classList.remove('show'); back.classList.remove('show');
+  document.getElementById('codeCard').classList.remove('show');
+  document.getElementById('launcher').classList.remove('show');
+});
+
+let bubble;
+function spawnBubble(x,y,msg){
+  if(bubble){ bubble.remove(); }
+  bubble = document.createElement('div');
+  bubble.className = 'bubble'; bubble.textContent = msg;
+  bubble.style.left = x+'px'; bubble.style.top = y+'px';
+  document.body.appendChild(bubble);
+  setTimeout(()=> bubble && bubble.remove(), 2200);
+}
+
+const icons = document.getElementById('icons');
+let sel = null;
+
+icons.addEventListener('click', e=>{
+  const icon = e.target.closest('.icon');
+  if(!icon) return;
+  select(icon);
+  beep(760,.05,.035);
+});
+
+icons.addEventListener('dblclick', e=>{
+  const icon = e.target.closest('.icon'); if(!icon) return;
+  const app = icon.dataset.app;
+  if(app==='valorant'){ launchValorant(); }
+  else if(app==='notes'){ spawnBubble(innerWidth/2, innerHeight*0.18, "No new notes."); }
+  else if(app==='recycle'){ spawnBubble(innerWidth/2, innerHeight*0.18, "Recycle Bin is empty."); }
+  else if(app==='hub'){ window.location.href="index.html"; } // ✅ HUB redirect
+});
+
+function select(el){
+  if(sel) sel.classList.remove('sel');
+  sel = el; sel.classList.add('sel');
+}
+
+const launcher = document.getElementById('launcher');
+const fill     = document.getElementById('fill');
+const statusEl = document.getElementById('status');
+const codeCard = document.getElementById('codeCard');
+const codeEl   = document.getElementById('code');
+
+function launchValorant(){
+  launcher.classList.add('show'); codeCard.classList.remove('show');
+  fill.style.width='0%'; statusEl.textContent='Initializing anti-cheat…';
+  let p=0; const steps=[
+    {t:500, s:'Checking secure boot…'},
+    {t:900, s:'Mounting assets…'},
+    {t:1200, s:'Linking shaders…'},
+    {t:1000, s:'Decrypting your reward…'}
+  ];
+  beep(520,.08,.05);
+  (function step(i){
+    if(i>=steps.length){
+      progressTo(100, 380, () => {
+        zap();
+        revealCode();
+      });
+      return;
+    }
+    progressTo(p+20, steps[i].t, () => { statusEl.textContent = steps[i].s; step(i+1);} );
+    p+=20;
+  })(0);
+}
+
+function progressTo(target, time, done){
+  const cur = parseFloat(fill.style.width)||0;
+  const start = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now-start)/time);
+    const v = cur + (target-cur)*t;
+    fill.style.width = v+'%';
+    if(t<1) requestAnimationFrame(tick); else done && done();
+  }
+  requestAnimationFrame(tick);
+}
+
+function revealCode(){
+  codeEl.textContent = VALORANT_CODE;
+  codeCard.classList.add('show');
+  localStorage.setItem('valorant_code_revealed','1');
+}
+
+cam.addEventListener('click', e=>{
+  if(e.target.closest('.codeCard')) return;
+  const anyOpen = codeCard.classList.contains('show') || launcher.classList.contains('show');
+  if(anyOpen){
+    codeCard.classList.remove('show');
+    launcher.classList.remove('show');
+    beep(360,.05,.035);
+  }
+});
+
+if(localStorage.getItem('valorant_code_revealed')==='1'){
+  cam.classList.add('show'); back.classList.add('show');
+  codeEl.textContent = VALORANT_CODE; codeCard.classList.add('show');
+}
+</script>
+</body>
+</html>
+
