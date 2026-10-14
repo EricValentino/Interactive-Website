@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🌸 Treasure Heart #3 — The Meadow & The Cat</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky1:#bfe6ff; --sky2:#97d7ff; --sky3:#69bdf6;
+  --glow:rgba(255,255,220,.9);
+  --gold:#ffd86f; --ink:#0e0e0e; --white:#fff;
+  --petal:#ff9bc0;
+}
+
+/* Reset */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; overflow:hidden; color:#fff;
+  font-family:"Crimson Pro", serif;
+  background:#000;
+}
+
+/* =========================================================================
+   LAYERS
+   ========================================================================= */
+
+/* Background image you provided */
+.bg{
+  position:fixed; inset:0; z-index:0;
+  background:url('background.jpg') center/cover no-repeat;
+  transform:translateZ(0);
+}
+
+/* Sky gradient overlay for sunrise color harmony */
+.sky{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(to bottom, var(--sky1), var(--sky2) 45%, var(--sky3) 70%, rgba(0,0,0,.1) 80%, rgba(0,0,0,.4));
+  mix-blend-mode:screen; opacity:.85;
+}
+
+/* Film grain */
+.grain{
+  position:fixed; inset:-50%; z-index:5; pointer-events:none; opacity:.06;
+  background-image:
+    radial-gradient(rgba(255,255,255,.15) 1px, transparent 1px),
+    radial-gradient(rgba(0,0,0,.08) 1px, transparent 1px);
+  background-position:0 0, 9px 9px;
+  background-size:18px 18px;
+  animation:grain 7s linear infinite;
+}
+@keyframes grain{ to{ transform:translate(9px,9px) } }
+
+/* Vignette */
+.vignette{
+  position:fixed; inset:0; z-index:20; pointer-events:none;
+  background:radial-gradient(120% 120% at 50% 35%, transparent 65%, rgba(0,0,0,.28) 100%);
+}
+
+/* Rising sun with subtle lens bloom */
+.sun{
+  --s: 240px;
+  position:fixed; left:50%; bottom:-160px; z-index:2;
+  width:var(--s); height:var(--s); transform:translateX(-50%) scale(.5);
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%, #ffd75f 0 40%, rgba(255,192,90,.3) 55%, rgba(255,192,90,0) 70%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.8) 0 10%, rgba(255,255,255,0) 60%);
+  filter:saturate(115%) contrast(105%);
+  box-shadow:0 0 40px rgba(255,220,120,.6), 0 0 120px rgba(255,220,120,.26), 0 0 220px rgba(255,220,120,.16);
+  animation:rise 9s cubic-bezier(.15,.65,.26,1) forwards, shimmer 7s ease-in-out infinite;
+}
+@keyframes rise{ to{ bottom:50%; transform:translateX(-50%) scale(1) } }
+@keyframes shimmer{
+  0%,100%{ filter:drop-shadow(0 0 34px rgba(255,220,120,.5)) saturate(110%) }
+  50%{ filter:drop-shadow(0 0 64px rgba(255,220,120,.75)) saturate(125%) hue-rotate(8deg) }
+}
+
+/* Bokeh particles (canvas sits behind content) */
+#bokeh{ position:fixed; inset:0; z-index:3; pointer-events:none; }
+
+/* Petal drift layer */
+.petal{
+  position:fixed; top:-40px; z-index:4; width:26px; height:22px;
+  background:
+    radial-gradient(circle at 70% 30%, #fff 0 18%, rgba(255,255,255,.6) 19% 30%, var(--petal) 31% 100%);
+  border-radius:60% 40% 60% 30%/70% 40% 60% 30%;
+  opacity:.9; pointer-events:none;
+  filter:blur(.1px);
+  animation:fall var(--t,9s) linear forwards;
+}
+@keyframes fall{
+  to{ transform:translate(var(--dx, 12vw), 110vh) rotate(540deg); opacity:0 }
+}
+
+/* Butterflies (animated with JS paths) */
+.butterfly{
+  position:fixed; z-index:6; width:64px; height:64px;
+  background:url('butterfly.gif') center/contain no-repeat;
+  pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.2)) saturate(115%);
+  opacity:0;
+  animation:bfFade .8s ease forwards;
+}
+@keyframes bfFade{ to{ opacity:1 } }
+
+/* Content wrap (cat + text + button) */
+.wrap{
+  position:fixed; inset:0; z-index:10; display:grid; place-items:center;
+  padding:24px;
+}
+.panel{
+  text-align:center; max-width:min(92vw, 700px);
+}
+.title{
+  margin:0 0 8px; font-family:"Playfair Display", serif; font-weight:800;
+  font-size:clamp(20px,3.6vw,44px);
+  text-shadow:0 2px 0 rgba(0,0,0,.15), 0 0 18px rgba(255,255,255,.25);
+}
+.subtitle{
+  margin:0 0 10px; opacity:.9; font-size:clamp(12px,1.6vw,18px)
+}
+.label{
+  font-size:clamp(16px,2.2vw,26px); font-weight:800; margin:4px 0 12px;
+  text-shadow:0 2px 0 rgba(0,0,0,.2), 0 0 14px rgba(255,255,255,.25);
+  animation:glow 2.2s ease-in-out infinite alternate;
+}
+@keyframes glow{ from{ text-shadow:0 0 10px #ff6fa9 } to{ text-shadow:0 0 22px #ff3d98 } }
+
+.cat{
+  width:min(52vw, 360px); height:auto; cursor:pointer; user-select:none;
+  border-radius:16px; backdrop-filter:blur(0.2px);
+  transform:translateZ(0);
+  box-shadow:0 10px 30px rgba(0,0,0,.32), 0 0 20px rgba(255,255,255,.12);
+  transition:transform .18s ease, filter .18s ease, box-shadow .18s ease;
+}
+.cat:hover{ transform:translateY(-2px) scale(1.02); filter:saturate(112%) }
+
+.msg{
+  margin-top:12px; min-height:28px; font-size:clamp(14px,1.9vw,20px);
+  opacity:.95
+}
+
+/* Continue button */
+.btn{
+  margin-top:18px; padding:12px 20px; border-radius:12px; border:0; cursor:pointer;
+  font-weight:800; letter-spacing:.3px; color:#3a2a00;
+  background:linear-gradient(180deg, #ffd66e, #ffb54f);
+  box-shadow:0 10px 24px rgba(0,0,0,.25), 0 0 24px rgba(255,211,100,.45);
+  transform:translateZ(0); opacity:0; pointer-events:none;
+  transition:opacity .5s ease, transform .15s ease;
+}
+.btn:hover{ transform:translateY(-2px) scale(1.02) }
+
+/* Night-sky cutscene overlay (after easter egg) */
+.night{
+  position:fixed; inset:0; z-index:30; display:none; pointer-events:none;
+  background:radial-gradient(160% 120% at 50% 20%, #0d1230 0%, #050716 60%, #000 100%);
+}
+#stars, #constellation{ position:absolute; inset:0 }
+.moon{
+  position:absolute; width:200px; height:200px; right:-240px; top:10%;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 40% 38%, #fff 0 25%, #eaeff9 26% 60%, #d4dbef 61% 100%);
+  box-shadow:0 0 24px rgba(200,220,255,.6), 0 0 100px rgba(200,220,255,.25);
+  filter:saturate(110%);
+}
+.nightQuote{
+  position:absolute; bottom:10%; width:100%; text-align:center; z-index:2;
+  font-family:"Playfair Display", serif; font-weight:800; letter-spacing:.4px;
+  text-shadow:0 2px 0 rgba(0,0,0,.35), 0 0 18px rgba(255,255,255,.25);
+  opacity:0; transition:opacity 800ms ease;
+  font-size:clamp(18px,3.2vw,36px);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion:reduce){
+  .sun{ animation:none; bottom:50%; transform:translateX(-50%) scale(1) }
+  .petal, .butterfly{ animation:none }
+}
+
+/* Tooltip for mobile tap hint */
+.hint{
+  position:fixed; left:50%; bottom:6%; transform:translateX(-50%);
+  background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.25);
+  padding:8px 14px; border-radius:999px; font-size:14px; z-index:22;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  backdrop-filter:blur(4px);
+}
+</style>
+</head>
+<body>
+
+<!-- LAYERS -->
+<div class="bg" aria-hidden="true"></div>
+<div class="sky" aria-hidden="true"></div>
+<canvas id="bokeh" aria-hidden="true"></canvas>
+<div class="sun" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- CONTENT -->
+<div class="wrap">
+  <div class="panel">
+    <h1 class="title">The Meadow</h1>
+    <p class="subtitle">A soft place to land. A sweeter place to stay. 🌷</p>
+    <div id="takeLbl" class="label">Take flowers 🌸</div>
+
+    <!-- Cat image toggles on click -->
+    <img id="cat" class="cat" src="catflower.jpg" alt="Cat offering flowers" />
+
+    <div id="msg" class="msg"></div>
+    <button id="nextBtn" class="btn" onclick="goNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- HINT for mobile -->
+<div class="hint" id="hint">(psst… tap the cat)</div>
+
+<!-- AUDIO (your GitHub file) -->
+<audio id="meow" preload="auto" src="https://raw.githubusercontent.com/EricValentino/kittymeow/main/short-meow-kitten-230900.mp3"></audio>
+
+<!-- NIGHT CUTSCENE (EASTER EGG: STARGAZER8000) -->
+<div id="night" class="night">
+  <canvas id="stars"></canvas>
+  <canvas id="constellation"></canvas>
+  <div id="moon" class="moon"></div>
+  <div id="loveQuote" class="nightQuote">To the moon and back, and further still.</div>
+</div>
+
+<script>
+/* =========================================================
+   QUICK CONFIG
+   ========================================================= */
+const BUTTERFLY_URL = 'butterfly.gif'; // replace with your own if you want
+const FLOWER_TAKE_TEXT = "The meadow gave you its flowers!  💕";
+
+/* =========================================================
+   PETALS
+   ========================================================= */
+function spawnPetal(){
+  const p = document.createElement('div');
+  p.className='petal';
+  p.style.left = (Math.random()*100) + 'vw';
+  p.style.setProperty('--dx', (Math.random()>.5?1:-1) * (6+Math.random()*12) + 'vw');
+  const t = 8 + Math.random()*6;
+  p.style.setProperty('--t', t+'s');
+  document.body.appendChild(p);
+  setTimeout(()=> p.remove(), t*1000 + 800);
+}
+setInterval(spawnPetal, 420);
+
+/* =========================================================
+   BOKEH PARTICLES (CANVAS)
+   ========================================================= */
+const bcv = document.getElementById('bokeh'), btx = bcv.getContext('2d');
+let BW, BH, circles=[];
+function bSize(){ BW=bcv.width=innerWidth; BH=bcv.height=innerHeight; makeBokeh(); }
+function makeBokeh(){
+  circles = Array.from({length: 40}, _=>({
+    x: Math.random()*BW, y: Math.random()*BH,
+    r: 10+Math.random()*28, v: .2+Math.random()*0.6, a: Math.random()*Math.PI*2, p: Math.random()*0.8 + 0.2
+  }));
+}
+addEventListener('resize', bSize); bSize();
+function bokehFrame(){
+  btx.clearRect(0,0,BW,BH);
+  circles.forEach(c=>{
+    c.y -= c.v*c.p; c.x += Math.sin(c.a+=0.008)*0.5;
+    if(c.y < -40) { c.y = BH+40; c.x = Math.random()*BW; }
+    const g = btx.createRadialGradient(c.x,c.y,1, c.x,c.y,c.r);
+    g.addColorStop(0, 'rgba(255,255,220,0.35)');
+    g.addColorStop(1, 'rgba(255,255,220,0)');
+    btx.fillStyle=g; btx.beginPath(); btx.arc(c.x,c.y,c.r,0,6.283); btx.fill();
+  });
+  requestAnimationFrame(bokehFrame);
+}
+bokehFrame();
+
+/* =========================================================
+   BUTTERFLIES (procedural bezier flutter)
+   ========================================================= */
+function spawnButterfly(delay=0, scale=1){
+  const el = document.createElement('div');
+  el.className='butterfly';
+  el.style.backgroundImage = `url('${BUTTERFLY_URL}')`;
+  el.style.transform = `scale(${scale})`;
+  el.style.opacity = '0';
+  document.body.appendChild(el);
+
+  const W = innerWidth, H = innerHeight;
+  const p0 = {x: -80, y: H* (.5 + Math.random()*.3) };
+  const p1 = {x: W* .25, y: H* (.2 + Math.random()*.3) };
+  const p2 = {x: W* .65, y: H* (.4 + Math.random()*.4) };
+  const p3 = {x: W+120, y: H* (.2 + Math.random()*.6) };
+
+  const total = 14000 + Math.random()*6000; // 14-20s
+  const start = performance.now() + delay;
+
+  function bezier(t,a,b,c,d){
+    const u=1-t, tt=t*t, uu=u*u, uuu=uu*u, ttt=tt*t;
+    return {
+      x: uuu*a.x + 3*uu*t*b.x + 3*u*tt*c.x + ttt*d.x,
+      y: uuu*a.y + 3*uu*t*b.y + 3*u*tt*c.y + ttt*d.y
+    };
+  }
+
+  function step(now){
+    const t = Math.min(1, (now-start)/total);
+    if(t<0){ requestAnimationFrame(step); return; }
+    const {x,y}=bezier(t,p0,p1,p2,p3);
+    el.style.left = x+'px'; el.style.top = y+'px';
+    el.style.opacity = (t<.1) ? t*10 : (t> .9 ? (1-(t-.9)*10) : 1);
+    el.style.transform = `translateZ(0) scale(${scale}) rotate(${Math.sin(now/120)*6}deg)`;
+    if(t<1) requestAnimationFrame(step); else { el.remove(); spawnButterfly(Math.random()*4000, 0.8+Math.random()*0.6); }
+  }
+  requestAnimationFrame(step);
+}
+// initial flock
+for(let i=0;i<5;i++) spawnButterfly(i*1200, 0.9+Math.random()*0.4);
+
+/* =========================================================
+   CAT INTERACTION
+   ========================================================= */
+const cat = document.getElementById('cat');
+const takeLbl = document.getElementById('takeLbl');
+const msg = document.getElementById('msg');
+const nextBtn = document.getElementById('nextBtn');
+const hint = document.getElementById('hint');
+const meow = document.getElementById('meow');
+
+let taken = false;
+
+cat.addEventListener('click', ()=>{
+  if(taken) return;
+  // swap image
+  cat.src = 'standingcat.webp';
+  taken = true;
+
+  // meow
+  try { meow.currentTime = 0; meow.play(); } catch{}
+
+  // label/message
+  takeLbl.textContent = FLOWER_TAKE_TEXT;
+  msg.textContent = "These flowers are yours to keep :) 🌷";
+
+  // little petals burst near the cat
+  petalsBurst(cat, 22);
+
+  // reveal continue
+  nextBtn.style.opacity = 1; nextBtn.style.pointerEvents = 'auto';
+  hint.remove();
+});
+
+function petalsBurst(target, n=16){
+  const rect = target.getBoundingClientRect();
+  for(let i=0;i<n;i++){
+    const p = document.createElement('div');
+    p.className='petal';
+    p.style.left = (rect.left + rect.width/2) + 'px';
+    p.style.top = (rect.top + 30) + 'px';
+    p.style.setProperty('--t', (5+Math.random()*4)+'s');
+    p.style.setProperty('--dx', ((Math.random()*2-1)*20) + 'vw');
+    document.body.appendChild(p);
+    setTimeout(()=> p.remove(), 9000);
+  }
+}
+
+/* Continue button → treasure4 (and mark found) */
+function goNext(){
+  localStorage.setItem('found_heart3','1');
+  // soft veil fade
+  const veil = document.createElement('div');
+  veil.style.position='fixed'; veil.style.inset='0'; veil.style.zIndex='999';
+  veil.style.background='radial-gradient(120% 120% at 50% 50%, rgba(255,255,255,.2), rgba(0,0,0,.9))';
+  veil.style.opacity='0'; veil.style.transition='opacity 900ms ease';
+  document.body.appendChild(veil);
+  requestAnimationFrame(()=> veil.style.opacity='1');
+  setTimeout(()=> location.href='treasure4.html', 950);
+}
+window.goNext = goNext;
+
+/* =========================================================
+   EASTER EGG: STARGAZER8000 → Night sky, heart constellation, moon pan
+   ========================================================= */
+let typebuf = "";
+addEventListener('keydown', (e)=>{
+  typebuf = (typebuf + e.key.toUpperCase()).slice(-20);
+  if(typebuf.includes("STARGAZER8000")) triggerMoonCutscene();
+});
+
+const night = document.getElementById('night');
+const stars = document.getElementById('stars'), stx = stars.getContext('2d');
+const constellation = document.getElementById('constellation'), ctx = constellation.getContext('2d');
+const moon = document.getElementById('moon');
+const loveQuote = document.getElementById('loveQuote');
+
+function triggerMoonCutscene(){
+  night.style.display='block';
+  stars.width = innerWidth; stars.height = innerHeight;
+  constellation.width = innerWidth; constellation.height = innerHeight;
+
+  // pan from meadow to sky
+  night.animate([{opacity:0, transform:'translateY(20vh)'},{opacity:1, transform:'translateY(0)'}], {duration:900, easing:'ease-out'});
+
+  // draw subtle starfield
+  for(let i=0;i<300;i++){
+    const x = Math.random()*stars.width, y = Math.random()*stars.height*0.7;
+    const r = Math.random()*1.6+0.2;
+    stx.fillStyle = `rgba(255,255,255,${0.35+Math.random()*0.65})`;
+    stx.beginPath(); stx.arc(x,y,r,0,6.283); stx.fill();
+  }
+
+  // slide moon in
+  moon.animate([{right:'-240px'},{right:'6%'}], {duration:1600, easing:'cubic-bezier(.2,.7,.2,1)', fill:'forwards'});
+
+  // draw heart constellation after a beat
+  setTimeout(drawHeartConstellation, 1100);
+
+  // show quote
+  setTimeout(()=> loveQuote.style.opacity = 1, 1600);
+}
+
+function drawHeartConstellation(){
+  const w = constellation.width, h = constellation.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.shadowColor = 'rgba(255,200,255,.8)';
+  ctx.shadowBlur = 18;
+
+  // parametric heart curve → scatter points
+  const pts=[];
+  const cx = w*0.42, cy = h*0.32, S = Math.min(w,h)*0.09;
+  for(let t=0; t<Math.PI*2; t+=0.22){
+    const x = cx + S*16*Math.pow(Math.sin(t),3);
+    const y = cy - S*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+    pts.push({x,y});
+  }
+
+  // animate dots + connecting lines
+  let i=0;
+  const tick = setInterval(()=>{
+    if(i>=pts.length){ clearInterval(tick); return; }
+    const p = pts[i];
+    ctx.fillStyle = 'rgba(255,240,250,.95)';
+    ctx.beginPath(); ctx.arc(p.x,p.y,2.4,0,6.283); ctx.fill();
+
+    if(i>0){
+      ctx.strokeStyle = 'rgba(255,200,240,.55)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(pts[i-1].x, pts[i-1].y); ctx.lineTo(p.x,p.y); ctx.stroke();
+    }
+    i++;
+  }, 35);
+}
+
+/* =========================================================
+   LITTLE POLISH
+   ========================================================= */
+// hide hint after a few seconds
+setTimeout(()=>{ try{ hint.style.opacity='.0'; setTimeout(()=>hint.remove(),600); }catch{} }, 5000);
+
+// keep things crisp on resize
+addEventListener('resize', ()=>{
+  bSize();
+  if(night.style.display==='block'){
+    stars.width = innerWidth; stars.height = innerHeight;
+    constellation.width = innerWidth; constellation.height = innerHeight;
+  }
+});
+</script>
+</body>
+</html>
+
+
+

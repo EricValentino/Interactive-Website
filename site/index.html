@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Treasure Hunt </title>
+<style>
+  :root{
+    --fg:#00ff99; --accent:#ff00ff; --glow:#b300ff; --star:#9a4dff; --starGlow:#d2b3ff;
+    --yellow:#ffe600; --panel:#0b0b0f; --panel2:#12121a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:"Courier New", monospace;
+    color:var(--fg);
+    background:#000 url("https://www.transparenttextures.com/patterns/stardust.png");
+    overflow-x:hidden;
+  }
+
+  #passwordGate{
+    position:fixed; inset:0;
+    background:#000;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    z-index:999;
+    color:#fff;
+  }
+  #passwordGate input{
+    padding:10px 14px; border-radius:8px; border:1px solid #444;
+    margin-top:10px; font-size:16px;
+  }
+  #passwordGate button{
+    margin-top:10px;
+    padding:10px 14px; border:none; border-radius:8px;
+    background:#9a4dff; color:#fff; font-weight:700;
+    cursor:pointer;
+  }
+  #passwordGate .error{ color:#f88; margin-top:8px; }
+
+  /* animated background canvas */
+  #bg{position:fixed; inset:0; z-index:-1}
+
+  .wrap{max-width:980px; margin:0 auto; padding:32px 20px 80px}
+  h1{
+    margin:14px 0 10px;
+    font-size:clamp(28px,4.2vw,52px);
+    color:var(--accent);
+    text-align:center;
+    text-shadow:2px 2px 0 #000, 0 0 12px var(--accent);
+    letter-spacing:2px;
+  }
+  .type{color:var(--yellow); text-align:center; min-height:28px}
+  .hint{color:var(--yellow); text-align:center; margin-top:8px}
+  .panel{
+    margin:28px auto; padding:18px 22px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid #2b2b3a; border-radius:12px;
+    box-shadow:0 0 18px rgba(179,0,255,.35);
+    width:min(780px,95vw);
+  }
+
+  .row{display:flex; gap:28px; justify-content:center; align-items:center; flex-wrap:wrap}
+  .heart{display:inline-block; padding:10px 12px; border-radius:14px;
+         background:rgba(179,0,255,.08); border:1px solid rgba(179,0,255,.35);
+         transition:transform .18s ease, box-shadow .18s ease; cursor:pointer}
+  .heart img{
+    width:120px; height:120px; image-rendering:pixelated; display:block;
+    border:none; outline:none; background:transparent; border-radius:8px;
+    box-shadow:0 0 16px var(--glow);
+  }
+  .heart:hover{ transform:translateY(-4px) scale(1.06); box-shadow:0 0 22px #c77dff }
+  .badge{display:block; margin-top:8px; text-align:center; font-weight:bold; color:#d9d1ff}
+
+  .star {
+    position: fixed;
+    font-size: 22px;
+    color: var(--star);
+    filter: drop-shadow(0 0 6px var(--starGlow)) drop-shadow(0 0 14px var(--star));
+    user-select: none;
+    pointer-events: auto;
+    transition: transform .12s ease;
+    z-index: 2;
+  }
+  .star:hover { transform: scale(1.25); }
+  .clickable { cursor: pointer; }
+  .twinkle { animation: twinkle 2.2s infinite ease-in-out; }
+  @keyframes twinkle { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+  .progress{display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap}
+  .chip{
+    padding:6px 10px; border-radius:999px; border:1px solid #3b3b64;
+    color:#eadeff; background:#161626; font-size:14px; opacity:.85
+  }
+  .chip.ok{ background:#15261c; border-color:#2c6e49; color:#9cffb0 }
+  .gate{ margin:18px auto 0; display:flex; justify-content:center; gap:12px; align-items:center; }
+  .btn{
+    appearance:none; border:none; border-radius:10px; padding:12px 18px; font-weight:700;
+    color:#150015; background:linear-gradient(180deg,#c77dff,#9a4dff);
+    box-shadow:0 0 16px rgba(154,77,255,.6); cursor:pointer; transition:transform .12s ease;
+  }
+  .btn:hover{ transform:translateY(-2px) }
+  .btn[disabled]{ filter:grayscale(.8) brightness(.7); cursor:not-allowed; box-shadow:none }
+
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+    background:#161626; border:1px solid #3b3b64; color:#eadeff;
+    padding:10px 14px; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.35);
+    opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:5; font-size:14px;
+  }
+  .toast.show{ opacity:1 }
+
+  .controls{ position:fixed; top:12px; right:12px; display:flex; gap:10px; z-index:5 }
+  .iconBtn{
+    background:#161626; border:1px solid #3b3b64; color:#eadeff; padding:8px 10px;
+    border-radius:10px; cursor:pointer; font-weight:700;
+  }
+
+  noscript{ display:block; color:#ff9; background:#400; padding:8px; text-align:center; }
+</style>
+</head>
+<body>
+<div id="passwordGate">
+  <h2>Enter Password</h2>
+  <input type="password" id="pwInput" placeholder="Enter password...">
+  <button onclick="checkPassword()">Enter</button>
+  <div id="pwError" class="error"></div>
+</div>
+
+<canvas id="bg"></canvas>
+
+<div class="controls">
+  <button id="muteBtn" class="iconBtn">🔊 Sound</button>
+  <button id="resetBtn" class="iconBtn" title="Clear progress">♻️ Reset</button>
+</div>
+
+<div class="wrap" id="mainContent" style="display:none;">
+  <h1>Welcome to your Treasure Hunt!!!</h1>
+  <div id="type" class="type"></div>
+
+  <div class="panel">
+    <p class="hint">Click the pixel hearts to unlock secrets 💖 <br/>Some stars hide treasures too… ✴︎</p>
+    <div class="row">
+      <a class="heart" href="treasure1.html" data-key="heart1">
+        <img src="pixel-heart.gif" alt="Heart 1"/><span class="badge" id="b-heart1">❌ Not found</span>
+      </a>
+      <a class="heart" href="treasure2.html" data-key="heart2">
+        <img src="pixel-heart.gif" alt="Heart 2"/><span class="badge" id="b-heart2">❌ Not found</span>
+      </a>
+      <a class="heart" href="treasure3.html" data-key="heart3">
+        <img src="pixel-heart.gif" alt="Heart 3"/><span class="badge" id="b-heart3">❌ Not found</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="progress" id="progressChips"></div>
+    <div class="gate">
+      <button id="finalBtn" class="btn" disabled>🔒 Final Gate (collect everything!)</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Saved!</div>
+
+<script>
+/* PASSWORD GATE */
+function checkPassword(){
+  const input=document.getElementById('pwInput').value.trim();
+  if(input.toLowerCase()==="chico"){
+    localStorage.setItem('gate_unlocked','1'); // save unlocked state
+    unlockGate();
+  }else{
+    document.getElementById('pwError').textContent="❌ Wrong password";
+  }
+}
+
+function unlockGate(){
+  document.getElementById('passwordGate').style.display='none';
+  document.getElementById('mainContent').style.display='block';
+}
+
+// On page load, check if already unlocked
+if(localStorage.getItem('gate_unlocked')==='1'){
+  unlockGate();
+}
+
+/* TYPEWRITER */
+const type = document.getElementById('type');
+const message = "Find the hearts. Seek the stars. Unlock the final secret page…";
+let i = 0; (function loop(){ type.textContent = message.slice(0, i++); if(i<=message.length){ setTimeout(loop, 28);} })();
+
+/* STARFIELD BG */
+const cvs = document.getElementById('bg'), ctx = cvs.getContext('2d');
+let W,H,stars=[];
+function resize(){ W = cvs.width = innerWidth; H = cvs.height = innerHeight; stars = makeStars(); }
+addEventListener('resize', resize);
+function makeStars(){ return Array.from({length:Math.round((W*H)/9000)}, ()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*1.6+0.4,r:Math.random()*1.4+0.3})); }
+function draw(){ ctx.clearRect(0,0,W,H); for(const s of stars){ s.x -= s.z; if(s.x<0) s.x=W; ctx.fillStyle=`rgba(210,179,255,${0.35+s.z/2})`; ctx.shadowBlur=8*s.z; ctx.shadowColor='#b300ff'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;} requestAnimationFrame(draw);}
+resize(); draw();
+
+/* SCATTERED STARS */
+const secrets=[
+  {key:'star1',href:'secret1.html'},
+  {key:'star2',href:'secret2.html'},
+  {key:'star3',href:'secret3/secrets3.html'} // adjust path if needed
+];
+const compliments=["A new star has been charted ✨","Signal received across the galaxy 💜","The universe is bigger than it looks.","Keep exploring: more treasure awaits.","Brightest explorer in the cosmos ⭐"];
+
+function sprinkleStars(){
+  document.querySelectorAll('.star').forEach(s=>s.remove());
+  const total=20,clickable=new Set([3,8,14]);
+  for(let i=0;i<total;i++){
+    const d=document.createElement('div');
+    d.className='star twinkle'+(clickable.has(i)?' clickable':'');
+    d.style.left=(Math.random()*95)+'%';
+    d.style.top=(Math.random()*95)+'%';
+    d.textContent='✦';
+
+    if(clickable.has(i)){
+      const s=secrets[[...clickable].indexOf(i)];
+      d.title='A hidden star…';
+      d.addEventListener('click',()=>{
+        // ✅ Save progress when clicking a star
+        localStorage.setItem('found_'+s.key,'1');
+        refreshProgress();
+        location.href=s.href;
+      });
+    }else{
+      d.addEventListener('click',()=> 
+        toast(compliments[(Math.random()*compliments.length)|0])
+      );
+    }
+    document.body.appendChild(d);
+  }
+}
+sprinkleStars();
+
+/* PROGRESS */
+const KEYS=['heart1','heart2','heart3','star1','star2','star3'];
+function got(k){ return localStorage.getItem('found_'+k)==='1'; }
+function setBadge(k, ok){ const el=document.getElementById('b-'+k); if(el){ el.textContent=ok?'✅ Found':'❌ Not found'; el.style.color=ok?'#9cffb0':'#d9d1ff'; } }
+function refreshProgress(){
+  setBadge('heart1',got('heart1'));
+  setBadge('heart2',got('heart2'));
+  setBadge('heart3',got('heart3'));
+  const chips=document.getElementById('progressChips');
+  chips.innerHTML='';
+  let count=0;
+  for(const k of KEYS){
+    const ok=got(k);
+    if(ok) count++;
+    const div=document.createElement('div');
+    div.className='chip'+(ok?' ok':'');
+    div.textContent=(ok?'✓ ':'• ')+k.toUpperCase();
+    chips.appendChild(div);
+  }
+  const finalBtn=document.getElementById('finalBtn');
+  if(count===KEYS.length){
+    finalBtn.disabled=false;
+    finalBtn.textContent='🗝️ Open Final Gate';
+  }else{
+    finalBtn.disabled=true;
+    finalBtn.textContent=`🔒 Final Gate (${count}/${KEYS.length})`;
+  }
+}
+refreshProgress();
+
+/* FINAL GATE */
+document.getElementById('finalBtn').addEventListener('click',e=>{
+  if(e.currentTarget.disabled){
+    toast('Collect all hearts and stars first!');
+    return;
+  }
+  location.href='final.html';
+});
+
+/* TOAST */
+const t=document.getElementById('toast'); let to;
+function toast(msg){ t.textContent=msg; t.classList.add('show'); clearTimeout(to); to=setTimeout(()=>t.classList.remove('show'),1400); }
+
+/* RESET + MUTE (placeholders since no audio in index) */
+document.getElementById('resetBtn').addEventListener('click',()=>{ 
+  for(const k of KEYS) localStorage.removeItem('found_'+k); 
+  localStorage.removeItem('gate_unlocked'); // also reset password gate
+  toast('Progress cleared'); 
+  refreshProgress(); 
+});
+</script>
+</body>
+</html>
+
+
+

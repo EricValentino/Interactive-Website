@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>💖 Treasure Heart #1 — Cosmic Access Terminal</title>
+<style>
+  :root{
+    --fg:#00ffb0; --accent:#ff34ff; --vio:#9a4dff; --yellow:#ffe35c;
+    --panel:#07070b; --panel2:#12121a; --scan:rgba(0,255,153,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; overflow:hidden; background:#000; color:var(--fg);
+    font-family:"Courier New", ui-monospace, monospace;
+    letter-spacing:.35px;
+  }
+
+  /* CRT scanlines */
+  .crt::before, .crt::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:50;
+  }
+  .crt::before{
+    background:repeating-linear-gradient(to bottom, var(--scan) 0 2px, transparent 2px 4px);
+    animation:scan 3s linear infinite; opacity:.26;
+  }
+  .crt::after{
+    background:radial-gradient(100% 140% at 50% -20%, transparent 60%, rgba(0,0,0,.27) 68% 100%),
+               radial-gradient(100% 140% at 50% 120%, transparent 60%, rgba(0,0,0,.3) 70% 100%);
+    mix-blend-mode:multiply;
+  }
+  @keyframes scan{0%{background-position-y:0}100%{background-position-y:4px}}
+
+  /* Shooting star canvas */
+  #bg{position:fixed; inset:0; z-index:-4}
+
+  /* Planets (GIFs) */
+  .planet{
+    position:fixed; z-index:-3; will-change:transform;
+    pointer-events:none;
+  }
+  .p1{ width:260px; left:5%; top:12%; }
+  .p2{ width:300px; right:6%; bottom:8%; }
+  .planet img{
+    width:100%; height:auto; display:block;
+    filter:drop-shadow(0 0 30px rgba(255,0,200,.6));
+  }
+
+  h1{
+    margin:20px 0 10px; text-align:center; color:var(--accent);
+    text-shadow:0 0 10px #b300ff, 0 0 22px #ff50ff;
+  }
+  .panel{
+    width:min(920px,92vw); margin:0 auto; padding:26px 28px;
+    background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid #2c2c4e; border-radius:14px;
+    box-shadow:0 0 24px rgba(179,0,255,.38);
+  }
+  .term{
+    padding:28px; border-radius:12px; line-height:1.6;
+    color:#78ffc7; background:rgba(0,0,0,.55);
+    border:1px solid #284; box-shadow:inset 0 0 22px rgba(0,255,153,.08);
+    text-shadow:0 0 2px rgba(0,255,153,.5);
+  }
+  .line::before{content:"> "; color:#1aff9e}
+  em{color:#a8ffd8}
+  .hint{color:var(--yellow); text-shadow:0 0 6px var(--yellow)}
+  .kbd{
+    display:block; margin:18px auto 0; width:320px; text-align:center;
+    padding:12px 14px; font-size:16px; color:#aefbdd;
+    background:#0c0f14; border:1px solid #39ffb9; border-radius:10px;
+    box-shadow:0 0 16px rgba(0,255,153,.35), inset 0 0 10px rgba(0,255,153,.08);
+    outline:none;
+  }
+  .btn{
+    display:block; margin:14px auto 0; padding:12px 18px; font-weight:800;
+    color:#140015; background:linear-gradient(180deg,#ff67ff,#9a4dff);
+    border:none; border-radius:10px; cursor:pointer;
+    box-shadow:0 0 22px rgba(154,77,255,.7); transition:transform .12s ease;
+  }
+  .btn:hover{ transform:translateY(-2px) scale(1.02) }
+  .feedback{ text-align:center; min-height:26px; margin-top:10px }
+  .ok{ color:#8fffbc; text-shadow:0 0 8px #00ff99 }
+  .err{ color:#ff7a7a; }
+
+  /* Glitch effect */
+  .glitch {
+    animation: glitch 0.3s linear 2;
+  }
+  @keyframes glitch {
+    0% { text-shadow: 2px 0 red, -2px 0 blue; }
+    50% { text-shadow: -2px 0 red, 2px 0 blue; }
+    100% { text-shadow: 2px 0 red, -2px 0 blue; }
+  }
+
+  /* Easter Egg: Cat */
+  .cat {
+    position:fixed;
+    bottom:20px; left:-200px;
+    width:180px; z-index:99;
+    pointer-events:none;
+    animation:walk 12s linear forwards;
+  }
+  @keyframes walk {
+    from { left:-200px; }
+    to { left:110%; }
+  }
+</style>
+</head>
+<body class="crt">
+
+<!-- Shooting stars -->
+<canvas id="bg"></canvas>
+
+<!-- Planets -->
+<div class="planet p1" data-depth="0.05"><img src="planet.gif" alt="Planet 1"></div>
+<div class="planet p2" data-depth="0.03"><img src="planet2.gif" alt="Planet 2"></div>
+
+<h1>💖 Treasure Heart #1 — Access Required</h1>
+
+<div class="panel" id="mainPanel">
+  <div id="terminal" class="term">
+    <div class="line">CONNECTION ESTABLISHED…</div>
+    <div class="line">Welcome, <span class="hint">PLAYER TWO</span>.</div>
+    <div class="line">&nbsp;</div>
+    <div class="line">Only by proving you’ve read between the lines can you proceed.</div>
+    <div class="line">&nbsp;</div>
+    <div class="line">Hidden in this text are <span class="hint">3 numbers</span> and <span class="hint">1 word</span>.</div>
+    <div class="line">Combine them in the format: <em>WORD-NUM1NUM2NUM3</em></div>
+    <div class="line">&nbsp;</div>
+    <div class="line">For example: <em>LOVE-153</em></div>
+    <div class="line">&nbsp;</div>
+    <div class="line">BEGIN MESSAGE:</div>
+    <div class="line">&nbsp;</div>
+    <div class="line"><span class="hint">First</span> time we talked, I couldn’t stop smiling.</div>
+    <div class="line">Your words were like <span class="hint">2</span> sparks in the dark, igniting something new.</div>
+    <div class="line">I replayed that moment <span class="hint">7</span> times in my head before sleeping.</div>
+    <div class="line">Even now, my heart skips every <span class="hint">4</span> beats thinking of you.</div>
+    <div class="line">The word you need is <span class="hint">STARDUST</span>.</div>
+    <div class="line">&nbsp;</div>
+    <div class="line">END MESSAGE.</div>
+  </div>
+
+  <input id="code" class="kbd" placeholder="Enter code..." />
+  <button id="go" class="btn">Unlock Access</button>
+  <div id="fb" class="feedback"></div>
+</div>
+
+<audio id="meowSound" src="meow.mp3" preload="auto"></audio>
+
+<script>
+/* Shooting star background */
+const cvs = document.getElementById('bg'), ctx = cvs.getContext('2d');
+let W,H,stars=[];
+function size(){W=cvs.width=innerWidth;H=cvs.height=innerHeight;stars=Array.from({length:Math.round(W*H/9000)},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*1.6+.4,r:Math.random()*1.4+.3}))}
+addEventListener('resize',size);size();
+function frame(){
+  ctx.clearRect(0,0,W,H);
+  for(const s of stars){
+    s.x-=s.z;if(s.x<-2){s.x=W+2;s.y=Math.random()*H}
+    ctx.fillStyle=`rgba(210,179,255,${.35+s.z/2})`;ctx.shadowBlur=8*s.z;ctx.shadowColor='#b300ff';
+    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.fill();ctx.shadowBlur=0;
+  }
+  requestAnimationFrame(frame);
+}
+frame();
+
+/* Parallax planets */
+const planets=document.querySelectorAll('.planet');
+addEventListener('mousemove',e=>{
+  const cx=(e.clientX/innerWidth-.5),cy=(e.clientY/innerHeight-.5);
+  planets.forEach(p=>{
+    const d=parseFloat(p.dataset.depth||.05);
+    p.style.transform=`translate3d(${(-cx*40*d)}px,${(-cy*40*d)}px,0)`;
+  });
+});
+
+/* Access Gate + Easter Eggs */
+const EXPECTED="STARDUST-274".toUpperCase();
+const input=document.getElementById('code');
+const btn=document.getElementById('go');
+const fb=document.getElementById('fb');
+const panel=document.getElementById('mainPanel');
+const meow=document.getElementById('meowSound');
+
+function grant(){
+  localStorage.setItem('found_heart1','1');
+  fb.innerHTML="<span class='ok'>✅ ACCESS GRANTED… Redirecting to Heart 2</span>";
+  setTimeout(()=>location.href="treasure2.html",1400);
+}
+function deny(){
+  fb.innerHTML="<span class='err'>❌ ACCESS DENIED. Try again…</span>";
+  panel.classList.add('glitch');
+  setTimeout(()=>panel.classList.remove('glitch'),600);
+}
+
+function catEasterEgg(){
+  const cat=document.createElement('img');
+  cat.src="cat.gif"; // ginger munchkin cat
+  cat.className="cat";
+  document.body.appendChild(cat);
+  meow.currentTime=0;
+  meow.play();
+  setTimeout(()=>cat.remove(),12000);
+}
+
+function heartsEasterEgg(){
+  for(let i=0;i<30;i++){
+    const s=document.createElement('div');
+    s.textContent='💖';
+    s.style.position='fixed';
+    s.style.left=(Math.random()*100)+'vw';
+    s.style.top='-10vh';
+    s.style.fontSize=(20+Math.random()*20)+'px';
+    s.style.transition='transform 2.5s ease-out, opacity 2.5s ease-out';
+    s.style.zIndex=99;
+    document.body.appendChild(s);
+    const tx=(Math.random()*2-1)*100;
+    setTimeout(()=>{s.style.transform=`translate(${tx}px, 110vh)`;s.style.opacity='0';},20);
+    setTimeout(()=>s.remove(),2600);
+  }
+}
+
+btn.addEventListener('click',()=>{
+  const guess=input.value.trim().toUpperCase();
+  if(!guess) return;
+  if(guess===EXPECTED){ grant(); }
+  else if(guess==="NOURAH"){
+    fb.innerHTML="<span class='ok'>🐾 Hi Nourah! A special kitty just for you.</span>";
+    catEasterEgg();
+  }
+  else if(guess==="LOVE"){
+    fb.innerHTML="<span class='ok'>💖 Surprise love storm! 💖</span>";
+    heartsEasterEgg();
+  }
+  else { deny(); }
+});
+input.addEventListener('keydown',e=>{if(e.key==='Enter')btn.click()});
+</script>
+</body>
+</html>
+
+
+
+
